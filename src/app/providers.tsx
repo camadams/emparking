@@ -55,6 +55,7 @@ export function Providers({ children }: { children: ReactNode }) {
         Link={Link}
         avatar={true}
         providers={["google"]}
+        redirectTo="/dashboard"
       >
         {children}
       </AuthUIProvider>
