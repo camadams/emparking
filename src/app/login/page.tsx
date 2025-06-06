@@ -7,7 +7,7 @@ export default function Login() {
   return (
     <div>
       <Button onClick={() => authClient.signIn.social({ provider: "google" })}>
-        Sign in with Google
+        Sign in with Google.
       </Button>
     </div>
   );
