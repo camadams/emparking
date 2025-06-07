@@ -4,6 +4,7 @@ import {
   timestamp,
   boolean,
   integer,
+  serial,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -65,3 +66,16 @@ export const verification = pgTable("verification", {
     () => /* @__PURE__ */ new Date()
   ),
 });
+
+export const dummyTable = pgTable("dummy", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type Dummy = typeof dummyTable.$inferSelect;
+export type NewDummy = typeof dummyTable.$inferInsert;

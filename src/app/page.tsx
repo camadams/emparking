@@ -12,6 +12,10 @@ import { redirect } from "next/navigation";
 export default function Home() {
   const { data: session, isPending } = authClient.useSession();
 
+  if (isPending) {
+    return <div>Loading...</div>;
+  }
+
   if (session?.user) {
     redirect("/dashboard");
   }
