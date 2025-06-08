@@ -11,9 +11,10 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { saasConfig } from "@/saas-config";
-import { Home, Search, Scale, Moon, Sun } from "lucide-react";
+import { Home, Search, Scale, Moon, Sun, ChartBar } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { UserButton } from "@daveyplate/better-auth-ui";
@@ -22,23 +23,20 @@ import DarkModeButton from "./dark-mode-button";
 // Menu items.
 const items = [
   {
-    title: "Home",
-    url: "/",
+    title: "Dashboard",
+    url: "/dashboard",
     icon: Home,
   },
   {
-    title: "Character",
-    url: "/character",
-    icon: Search,
-  },
-  {
-    title: "Compare",
-    url: "/compare",
-    icon: Scale,
+    title: "Dummy",
+    url: "/dashboard/dummy",
+    icon: ChartBar,
   },
 ];
 
 export function AppSidebar() {
+  const { setOpenMobile } = useSidebar();
+
   return (
     <Sidebar collapsible="icon">
       {/* <SidebarHeader>
@@ -56,7 +54,7 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url}>
+                    <Link href={item.url} onClick={() => setOpenMobile(false)}>
                       <item.icon />
                       <span className="font-[family-name:var(--font-geist-sans)]">
                         {item.title}
