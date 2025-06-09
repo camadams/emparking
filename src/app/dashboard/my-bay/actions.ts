@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { bayTable, availabilityTable } from "@/db/schema";
-import { eq, and, isNull, ne } from "drizzle-orm";
+import { bayTable, availabilityTable, claimTable, user } from "@/db/schema";
+import { eq, and, isNull, ne, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -103,9 +103,35 @@ export async function getMyBay() {
       .orderBy(availabilityTable.updatedAt)
       .limit(1);
 
+    // Get active claim for this bay (if any)
+    const activeClaims = await db
+      .select({
+        claim: claimTable,
+        claimer: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image
+        }
+      })
+      .from(claimTable)
+      .where(
+        and(
+          eq(claimTable.bayId, bay[0].id),
+          isNull(claimTable.releasedAt)
+        )
+      )
+      .innerJoin(user, eq(claimTable.claimerId, user.id))
+      .orderBy(desc(claimTable.claimedAt))
+      .limit(1);
+
     return {
       bay: bay[0],
       availability: availability[0] || null,
+      activeClaim: activeClaims.length > 0 ? {
+        ...activeClaims[0].claim,
+        claimer: activeClaims[0].claimer
+      } : null
     };
   } catch (error) {
     const errorMessage = "Error fetching bay: " + error;

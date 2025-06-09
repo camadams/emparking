@@ -16,6 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -342,11 +344,67 @@ function MyBaySection() {
           </div>
         </div>
 
-        {myBayData?.availability?.isAvailable && (
+        {/* Status messages based on availability and claim status */}
+        {myBayData?.availability?.isAvailable && !myBayData?.activeClaim && (
           <p className="text-sm text-muted-foreground">
             Your bay is currently visible to other residents who may request to
             use it.
           </p>
+        )}
+
+        {/* Display claim status: either claimed or not claimed */}
+        {myBayData?.bay && (
+          <div
+            className={`mt-4 p-4 border rounded-lg ${
+              myBayData.activeClaim
+                ? "border-primary/20 bg-primary/5"
+                : "border-muted bg-muted/20"
+            }`}
+          >
+            <h3
+              className={`font-medium mb-2 ${
+                myBayData.activeClaim ? "text-primary" : "text-foreground"
+              }`}
+            >
+              {myBayData.activeClaim
+                ? "Currently Claimed"
+                : "Not Currently Claimed"}
+            </h3>
+
+            {!myBayData.activeClaim && (
+              <div className="text-muted-foreground">
+                <p>No one is currently using your parking bay.</p>
+              </div>
+            )}
+
+            {myBayData.activeClaim && (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 border border-muted">
+                  {myBayData.activeClaim.claimer.image ? (
+                    <AvatarImage
+                      src={myBayData.activeClaim.claimer.image}
+                      alt={myBayData.activeClaim.claimer.name || "User"}
+                    />
+                  ) : null}
+                  <AvatarFallback>
+                    {(myBayData.activeClaim.claimer.name || "U").charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">
+                    {myBayData.activeClaim.claimer.name || "A resident"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {myBayData.activeClaim.claimer.email}
+                  </p>
+                  <p className="text-xs mt-1">
+                    Claimed on{" "}
+                    {new Date(myBayData.activeClaim.claimedAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
