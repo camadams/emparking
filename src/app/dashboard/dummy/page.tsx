@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { redirect } from "next/navigation";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -28,6 +29,15 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>;
 
 export default function Dashboard() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (!session?.user) {
+    redirect("/auth/sign-in");
+  }
   const { data, isLoading } = useQuery({
     queryKey: ["dummies"],
     queryFn: () => getDummyData(),
