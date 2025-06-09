@@ -1,5 +1,4 @@
 "use client";
-import { authClient } from "@/lib/auth-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { addDummyData, getDummyData } from "./actions";
@@ -18,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { redirect } from "next/navigation";
+import { useAuthenticate } from "@daveyplate/better-auth-ui";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -29,16 +28,7 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>;
 
 export default function Dashboard() {
-  const { data: session, isPending } = authClient.useSession();
-
-  if (isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (!session?.user) {
-    redirect("/auth/sign-in");
-  }
-  const { data, isLoading } = useQuery({
+  const { data, isLoading: isLoadingData } = useQuery({
     queryKey: ["dummies"],
     queryFn: () => getDummyData(),
   });
@@ -58,16 +48,32 @@ export default function Dashboard() {
     if (result.error) {
       toast.error(result.error);
     }
-
     if (result.message) {
       toast.success(result.message);
-
       form.reset();
       queryClient.invalidateQueries({ queryKey: ["dummies"] });
     }
   }
 
-  if (isLoading) return <div>Loading...</div>;
+  const renderItems = () => {
+    if (isLoadingData) return <p>Loading...</p>;
+    if (!data) return <p>Something went wrong</p>;
+    if (!data.response || data.response.length === 0) {
+      return <p>No items yet. Add your first one above!</p>;
+    }
+
+    return (
+      <div>
+        {data.response.map((item) => (
+          <div key={item.id}>
+            <p>{item.name}</p>
+            <p>Added: {new Date(item.createdAt).toLocaleString()}</p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div>
       <Form {...form}>
@@ -93,18 +99,7 @@ export default function Dashboard() {
       </Form>
 
       <h2>Current Items</h2>
-      {data?.response ? (
-        <div>
-          {data.response.map((item) => (
-            <div key={item.id}>
-              <p>{item.name}</p>
-              <p>Added: {new Date(item.createdAt).toLocaleString()}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p>No items yet. Add your first one above!</p>
-      )}
+      {renderItems()}
     </div>
   );
 }

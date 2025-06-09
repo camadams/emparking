@@ -4,12 +4,14 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { UserButton } from "@daveyplate/better-auth-ui";
 import { Button } from "@/components/ui/button";
+import { useAuthenticate } from "@daveyplate/better-auth-ui";
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useAuthenticate();
   return (
     <SidebarProvider>
       <AppSidebar />
