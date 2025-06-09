@@ -14,10 +14,11 @@ export async function getDummyData() {
     return { error: "You must be logged in" };
   }
 
-  return db
+  const response = await db
     .select()
     .from(dummyTable)
     .where(eq(dummyTable.userId, session.user.id));
+  return { response };
 }
 
 export async function addDummyData(name: string) {

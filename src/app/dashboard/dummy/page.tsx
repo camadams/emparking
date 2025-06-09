@@ -83,9 +83,9 @@ export default function Dashboard() {
       </Form>
 
       <h2>Current Items</h2>
-      {data && data.length > 0 ? (
+      {data?.response ? (
         <div>
-          {data.map((item) => (
+          {data.response.map((item) => (
             <div key={item.id}>
               <p>{item.name}</p>
               <p>Added: {new Date(item.createdAt).toLocaleString()}</p>
