@@ -9,10 +9,15 @@ import { headers } from "next/headers";
 export async function getDummyData() {
   const headersList = await headers();
   const session = await auth.api.getSession({ headers: headersList });
+
+  if (!session?.user?.id) {
+    return { error: "You must be logged in" };
+  }
+
   return db
     .select()
     .from(dummyTable)
-    .where(eq(dummyTable.userId, session?.user.id!));
+    .where(eq(dummyTable.userId, session.user.id));
 }
 
 export async function addDummyData(name: string) {
@@ -35,7 +40,7 @@ export async function addDummyData(name: string) {
 
     return { message: "Added successfully" };
   } catch (error) {
-    let errorMessage = "Error adding data: " + error;
+    const errorMessage = "Error adding data: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }
