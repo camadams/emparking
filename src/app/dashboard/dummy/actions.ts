@@ -11,7 +11,7 @@ export async function getDummyData() {
   const session = await auth.api.getSession({ headers: headersList });
 
   if (!session?.user?.id) {
-    return { error: "You must be logged in" };
+    return { error: "You must be logged in." };
   }
 
   const response = await db
