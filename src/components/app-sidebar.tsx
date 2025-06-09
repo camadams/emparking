@@ -22,16 +22,16 @@ import DarkModeButton from "./dark-mode-button";
 
 // Menu items.
 const items = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
-  },
-  {
-    title: "Dummy",
-    url: "/dashboard/dummy",
-    icon: ChartBar,
-  },
+  // {
+  //   title: "Dashboard",
+  //   url: "/dashboard",
+  //   icon: Home,
+  // },
+  // {
+  //   title: "Dummy",
+  //   url: "/dashboard/dummy",
+  //   icon: ChartBar,
+  // },
   {
     title: "My Bay",
     url: "/dashboard/my-bay",

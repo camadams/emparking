@@ -23,7 +23,7 @@ export default function Home() {
   }
 
   if (session?.user) {
-    redirect("/dashboard");
+    redirect("/dashboard/my-bay");
   }
 
   return (
