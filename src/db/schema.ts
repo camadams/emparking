@@ -5,6 +5,7 @@ import {
   boolean,
   integer,
   serial,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -79,3 +80,53 @@ export const dummyTable = pgTable("dummy", {
 
 export type Dummy = typeof dummyTable.$inferSelect;
 export type NewDummy = typeof dummyTable.$inferInsert;
+
+// Bay table - represents a parking bay owned by a resident
+export const bayTable = pgTable("bay", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),  // e.g., "A23"
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Availability table - represents when a bay is available for use
+export const availabilityTable = pgTable("availability", {
+  id: serial("id").primaryKey(),
+  bayId: integer("bay_id")
+    .notNull()
+    .references(() => bayTable.id, { onDelete: "cascade" }),
+  isAvailable: boolean("is_available").notNull().default(false),
+  availableFrom: timestamp("available_from"),
+  availableUntil: timestamp("available_until"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Claim table - represents when someone claims a bay for use
+export const claimTable = pgTable("claim", {
+  id: serial("id").primaryKey(),
+  bayId: integer("bay_id")
+    .notNull()
+    .references(() => bayTable.id, { onDelete: "cascade" }),
+  claimerId: text("claimer_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  claimedAt: timestamp("claimed_at").notNull().defaultNow(),
+  expectedDuration: integer("expected_duration"),  // in minutes
+  releasedAt: timestamp("released_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Type definitions for our models
+export type Bay = typeof bayTable.$inferSelect;
+export type NewBay = typeof bayTable.$inferInsert;
+
+export type Availability = typeof availabilityTable.$inferSelect;
+export type NewAvailability = typeof availabilityTable.$inferInsert;
+
+export type Claim = typeof claimTable.$inferSelect;
+export type NewClaim = typeof claimTable.$inferInsert;

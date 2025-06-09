@@ -11,7 +11,6 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 
 function makeQueryClient() {
   return new QueryClient({
