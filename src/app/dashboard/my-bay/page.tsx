@@ -207,7 +207,7 @@ function MyBaySection() {
   // Handle toggling bay availability
   async function updateAvailability() {
     if (!myBayData?.bay?.id) {
-      toast.error("Bay ID not found.");
+      toast.error("Bay ID not found");
       return;
     }
     setIsToggling(true);
