@@ -16,4 +16,8 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
+  trustedOrigins: [
+    "https://emparking.camthehuman.com",
+    "https://emparking.vercel.app",
+  ],
 });
