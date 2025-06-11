@@ -105,19 +105,14 @@ function AvailableBaysSection() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {claimsData.activeClaims.map((item) => {
           const { days, hours, minutes } = intervalToDuration({
-            start: item.availability?.availableUntil || new Date(),
-            end: new Date(),
+            start: new Date(),
+            end: item.availability?.availableUntil || new Date(),
           });
           const availableUntilFormatted = format(
             item.availability?.availableUntil || new Date(),
             "p eeee, do MMM"
           );
-          console.log(
-            differenceInHours(
-              item.availability?.availableUntil || new Date(),
-              new Date()
-            )
-          );
+          const timeLeft = `${days} days, ${hours} hours and ${minutes} minutes`;
           return (
             <Card
               key={item.claim.id}
@@ -129,8 +124,10 @@ function AvailableBaysSection() {
               </CardHeader>
               <CardContent className="bg-muted">
                 <p>
-                  Claimed:
-                  {format(new Date(item.claim.claimedAt), "p eeee, do MMM")}
+                  {`Claimed: ${format(
+                    new Date(item.claim.claimedAt),
+                    "p eeee, do MMM"
+                  )}`}
                 </p>
               </CardContent>
               <CardFooter className="border-t gap-6">
@@ -142,7 +139,7 @@ function AvailableBaysSection() {
                   Release Bay
                 </Button>
                 <div className="mt-2  text-destructive">
-                  {`Please release by: ${availableUntilFormatted}`}
+                  {`Please release by: ${availableUntilFormatted}, which is in ${timeLeft}`}
                 </div>
               </CardFooter>
             </Card>

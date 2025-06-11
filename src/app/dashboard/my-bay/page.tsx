@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { DateTimePicker } from "@/components/date-time-picker";
+import { format } from "date-fns";
 
 // Form schema for bay registration/updating
 const bayFormSchema = z.object({
@@ -102,11 +103,6 @@ function MyBaySection() {
   useEffect(() => {
     if (myBayData?.availability) {
       setIsAvailable(myBayData.availability.isAvailable);
-
-      console.log({
-        availableFrom: myBayData.availability.availableFrom,
-        availableUntil: myBayData.availability.availableUntil,
-      });
       if (myBayData.availability.availableFrom) {
         const fromDateTime = new Date(myBayData.availability.availableFrom);
         setFromDate(fromDateTime);
@@ -261,7 +257,7 @@ function MyBaySection() {
     const now = new Date();
 
     // If no date ranges set, consider as available
-    if (!availableFrom && !availableUntil) return true;
+    if (!availableFrom && !availableUntil) return false;
 
     // Check if current time is after start time (or no start time set)
     const afterStart = !availableFrom || availableFrom <= now;
@@ -280,6 +276,14 @@ function MyBaySection() {
     availableFrom: Date | null;
     availableUntil: Date | null;
   }) {
+    if (!availableFrom && !availableUntil) {
+      return (
+        <p className="text-sm text-amber-500">
+          Your bay is not currently visible to other residents as you need to
+          fill in the availability dates.
+        </p>
+      );
+    }
     const isCurrentlyAvailable = isWithinAvailabilityWindow(
       availableFrom,
       availableUntil
@@ -551,8 +555,10 @@ function MyBaySection() {
                     {myBayData.activeClaim.claimer.email}
                   </p>
                   <p className="text-xs mt-1">
-                    Claimed on{" "}
-                    {new Date(myBayData.activeClaim.claimedAt).toLocaleString()}
+                    {`Claimed on ${format(
+                      new Date(myBayData.activeClaim.claimedAt),
+                      "p eeee, do MMM"
+                    )}`}
                   </p>
                 </div>
               </div>
