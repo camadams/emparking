@@ -138,11 +138,12 @@ export async function getMyActiveClaims() {
       return { error: "You must be logged in" };
     }
 
-    // Get all active claims by the user
+    // Get all active claims by the user with availability information
     const activeClaims = await db
       .select({
         claim: claimTable,
         bay: bayTable,
+        availability: availabilityTable,
         ownerName:
           sql<string>`(SELECT name FROM "user" WHERE id = ${bayTable.ownerId})`.as(
             "ownerName"
@@ -150,6 +151,11 @@ export async function getMyActiveClaims() {
       })
       .from(claimTable)
       .innerJoin(bayTable, eq(claimTable.bayId, bayTable.id))
+      // Join with the availability table to get the releaseBy date
+      .leftJoin(
+        availabilityTable,
+        eq(availabilityTable.bayId, bayTable.id)
+      )
       .where(
         and(
           eq(claimTable.claimerId, session.user.id),

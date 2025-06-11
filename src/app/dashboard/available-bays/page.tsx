@@ -14,6 +14,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
+import {
+  format,
+  differenceInHours,
+  differenceInDays,
+  intervalToDuration,
+} from "date-fns";
 
 export default function AvailableBaysPage() {
   // Ensure user is authenticated
@@ -47,7 +53,9 @@ function AvailableBaysSection() {
   async function onClaimBay(bayId: number, availableUntil: Date | null) {
     // Confirm with the user about bay availability responsibilities
     const confirmed = window.confirm(
-      `Please confirm that you understand this bay is only available until ${availableUntil?.toLocaleString()}. You must be responsible to move before that time and to unclaim the bay in this app when you're done using it.`
+      `Please confirm that you understand this bay is only available until ${
+        availableUntil ? format(availableUntil, "p eeee, do MMM") : "Error"
+      }. You must be responsible to move before that time and to unclaim the bay in this app when you're done using it.`
     );
 
     if (!confirmed) {
@@ -95,26 +103,51 @@ function AvailableBaysSection() {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {claimsData.activeClaims.map((item) => (
-          <Card key={item.claim.id} className="overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
-              <CardDescription>Owner: {item.ownerName}</CardDescription>
-            </CardHeader>
-            <CardContent className="bg-muted">
-              <p>Claimed: {new Date(item.claim.claimedAt).toLocaleString()}</p>
-            </CardContent>
-            <CardFooter className="border-t">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => onReleaseBay(item.claim.id)}
-              >
-                Release Bay
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {claimsData.activeClaims.map((item) => {
+          const { days, hours, minutes } = intervalToDuration({
+            start: item.availability?.availableUntil || new Date(),
+            end: new Date(),
+          });
+          const availableUntilFormatted = format(
+            item.availability?.availableUntil || new Date(),
+            "p eeee, do MMM"
+          );
+          console.log(
+            differenceInHours(
+              item.availability?.availableUntil || new Date(),
+              new Date()
+            )
+          );
+          return (
+            <Card
+              key={item.claim.id}
+              className="overflow-hidden border-destructive"
+            >
+              <CardHeader>
+                <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
+                <CardDescription>Owner: {item.ownerName}</CardDescription>
+              </CardHeader>
+              <CardContent className="bg-muted">
+                <p>
+                  Claimed:
+                  {format(new Date(item.claim.claimedAt), "p eeee, do MMM")}
+                </p>
+              </CardContent>
+              <CardFooter className="border-t gap-6">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onReleaseBay(item.claim.id)}
+                >
+                  Release Bay
+                </Button>
+                <div className="mt-2  text-destructive">
+                  {`Please release by: ${availableUntilFormatted}`}
+                </div>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
     );
   };
@@ -144,21 +177,17 @@ function AvailableBaysSection() {
             </CardHeader>
             <CardContent className="bg-muted">
               <p>
-                Available since:{" "}
-                {item.availability.updatedAt
-                  ? new Date(item.availability.updatedAt).toLocaleString()
-                  : "Unknown"}
+                Available from:{" "}
+                {item.availability.availableFrom
+                  ? format(item.availability.availableFrom, "p eeee, do MMM")
+                  : "Error"}
               </p>
-              {item.availability.availableUntil && (
-                <p>
-                  Available until:{" "}
-                  {item.availability.availableUntil
-                    ? new Date(
-                        item.availability.availableUntil
-                      ).toLocaleString()
-                    : "Unknown"}
-                </p>
-              )}
+              <p>
+                Available until:{" "}
+                {item.availability.availableUntil
+                  ? format(item.availability.availableUntil, "p eeee, do MMM")
+                  : "Error"}
+              </p>
             </CardContent>
             <CardFooter className="border-t">
               <Button
