@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { getMyBay, registerBay, updateBayLabel } from "./actions";
 import { toggleBayAvailability } from "../bays/availability-actions";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { DateTimePicker } from "@/components/date-time-picker";
 
 // Form schema for bay registration/updating
 const bayFormSchema = z.object({
@@ -86,9 +87,39 @@ function MyBaySection() {
     },
   });
 
-  // State for toggling edit mode
+  // State for toggling edit mode and availability settings
   const [isEditing, setIsEditing] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  // State for date/time pickers
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+  const [fromTime, setFromTime] = useState("00:00");
+  const [untilDate, setUntilDate] = useState<Date | undefined>(undefined);
+  const [untilTime, setUntilTime] = useState("23:59");
+
+  // Load current availability data
+  useEffect(() => {
+    if (myBayData?.availability) {
+      setIsAvailable(myBayData.availability.isAvailable);
+
+      console.log({
+        availableFrom: myBayData.availability.availableFrom,
+        availableUntil: myBayData.availability.availableUntil,
+      });
+      if (myBayData.availability.availableFrom) {
+        const fromDateTime = new Date(myBayData.availability.availableFrom);
+        setFromDate(fromDateTime);
+        setFromTime(fromDateTime.toTimeString().substring(0, 5));
+      }
+
+      if (myBayData.availability.availableUntil) {
+        const untilDateTime = new Date(myBayData.availability.availableUntil);
+        setUntilDate(untilDateTime);
+        setUntilTime(untilDateTime.toTimeString().substring(0, 5));
+      }
+    }
+  }, [myBayData?.availability]);
 
   // Handle bay registration
   async function onRegisterBay(values: RegistrationFormValues) {
@@ -141,37 +172,135 @@ function MyBaySection() {
     }
   }
 
-  // Handle toggling bay availability
+  // Combine date and time into a single Date object
+  function combineDateTime(
+    date: Date | undefined,
+    timeStr: string
+  ): Date | undefined {
+    if (!date) return undefined;
+
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const combined = new Date(date);
+    combined.setHours(hours, minutes, 0, 0);
+    return combined;
+  }
+
   async function toggleAvailability() {
-    if (!myBayData?.bay?.id) return;
+    if (!myBayData?.bay?.id) {
+      toast.error("Bay ID not found");
+      return;
+    }
     setIsToggling(true);
 
-    const currentAvailability = myBayData?.availability?.isAvailable || false;
+    const result = await toggleBayAvailability(myBayData.bay.id, !isAvailable);
+
+    if (result.error) {
+      toast.error(result.error);
+      setIsToggling(false);
+      return;
+    }
+
+    if (result.message) {
+      toast.success(result.message);
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["my-bay"] });
+      setIsToggling(false);
+    }
+  }
+
+  // Handle toggling bay availability
+  async function updateAvailability() {
+    if (!myBayData?.bay?.id) {
+      toast.error("Bay ID not found");
+      return;
+    }
+    setIsToggling(true);
+
+    // Prepare date objects by combining date and time values
+    let availableFrom: Date | undefined;
+    let availableUntil: Date | undefined;
+
+    if (isAvailable) {
+      availableFrom = combineDateTime(fromDate, fromTime);
+      availableUntil = combineDateTime(untilDate, untilTime);
+    }
 
     const result = await toggleBayAvailability(
       myBayData.bay.id,
-      !currentAvailability
+      isAvailable,
+      availableFrom,
+      availableUntil
     );
 
     if (result.error) {
       toast.error(result.error);
+      setIsToggling(false);
+      return;
     }
 
     if (result.message) {
       toast.success(result.message);
       queryClient.invalidateQueries({ queryKey: ["my-bay"] });
-      queryClient.invalidateQueries({ queryKey: ["available-bays"] });
+      setIsToggling(false);
     }
-
-    setIsToggling(false);
   }
 
   // Start edit mode with current bay label
   function startEditing() {
     if (myBayData?.bay) {
-      updateForm.reset({ label: myBayData.bay.label });
+      updateForm.setValue("label", myBayData.bay.label);
       setIsEditing(true);
     }
+  }
+
+  // Check if current time is within availability window
+  function isWithinAvailabilityWindow(
+    availableFrom: Date | null,
+    availableUntil: Date | null
+  ): boolean {
+    const now = new Date();
+
+    // If no date ranges set, consider as available
+    if (!availableFrom && !availableUntil) return true;
+
+    // Check if current time is after start time (or no start time set)
+    const afterStart = !availableFrom || availableFrom <= now;
+
+    // Check if current time is before end time (or no end time set)
+    const beforeEnd = !availableUntil || availableUntil >= now;
+
+    return afterStart && beforeEnd;
+  }
+
+  // Component to display bay availability status
+  function AvailabilityStatusMessage({
+    availableFrom,
+    availableUntil,
+  }: {
+    availableFrom: Date | null;
+    availableUntil: Date | null;
+  }) {
+    const isCurrentlyAvailable = isWithinAvailabilityWindow(
+      availableFrom,
+      availableUntil
+    );
+
+    if (isCurrentlyAvailable) {
+      return (
+        <p className="text-sm text-muted-foreground">
+          Your bay is currently visible to other residents who may request to
+          use it.
+        </p>
+      );
+    }
+
+    return (
+      <p className="text-sm text-amber-500">
+        Your bay is scheduled to be available{" "}
+        {availableFrom ? `from ${availableFrom.toLocaleString()}` : ""}
+        {availableUntil ? ` until ${availableUntil.toLocaleString()}` : ""}.
+      </p>
+    );
   }
 
   // Show registration form if no bay exists
@@ -317,39 +446,63 @@ function MyBaySection() {
           </div>
         )}
 
-        <div className="flex justify-between items-center pt-4 border-t">
-          <div>
-            <p className="font-medium">Availability Status</p>
-            <p
-              className={`font-bold ${
-                myBayData?.availability?.isAvailable
-                  ? "text-green-500"
-                  : "text-red-500"
-              }`}
-            >
-              {myBayData?.availability?.isAvailable
-                ? "Available"
-                : "Unavailable"}
-            </p>
+        <div className="pt-4 border-t">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium">Availability Status</p>
+              <p
+                className={`font-bold ${
+                  isAvailable ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {isAvailable ? "Available" : "Unavailable"}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={isAvailable}
+                onCheckedChange={(checked) => toggleAvailability()}
+                disabled={isToggling}
+              />
+              <span className="text-sm">{isAvailable ? "On" : "Off"}</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={myBayData?.availability?.isAvailable || false}
-              onCheckedChange={toggleAvailability}
-              disabled={isToggling}
-            />
-            <span className="text-sm">
-              {myBayData?.availability?.isAvailable ? "On" : "Off"}
-            </span>
-          </div>
+
+          {isAvailable && (
+            <div className="mt-4 space-y-4">
+              <DateTimePicker
+                label="Available From"
+                date={fromDate}
+                onDateChange={setFromDate}
+                time={fromTime}
+                onTimeChange={setFromTime}
+                disabled={isToggling}
+              />
+              <DateTimePicker
+                label="Available Until"
+                date={untilDate}
+                onDateChange={setUntilDate}
+                time={untilTime}
+                onTimeChange={setUntilTime}
+                disabled={isToggling}
+              />
+              <Button
+                onClick={updateAvailability}
+                disabled={isToggling}
+                className="w-full"
+              >
+                {isToggling ? "Updating..." : "Save Availability"}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Status messages based on availability and claim status */}
         {myBayData?.availability?.isAvailable && !myBayData?.activeClaim && (
-          <p className="text-sm text-muted-foreground">
-            Your bay is currently visible to other residents who may request to
-            use it.
-          </p>
+          <AvailabilityStatusMessage
+            availableFrom={myBayData.availability.availableFrom}
+            availableUntil={myBayData.availability.availableUntil}
+          />
         )}
 
         {/* Display claim status: either claimed or not claimed */}

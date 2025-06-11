@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { bayTable, availabilityTable, user } from "@/db/schema";
+import { bayTable, availabilityTable, claimTable, user } from "@/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -47,14 +47,24 @@ export async function toggleBayAvailability(
 
     // If there's an existing record, update it
     if (currentAvailability && currentAvailability.length > 0) {
+      // Prepare the update object - keep existing values if new ones not provided
+      const updateData: any = {
+        isAvailable,
+        updatedAt: new Date(),
+      };
+
+      // Only update date fields if new values are provided
+      if (availableFrom !== undefined) {
+        updateData.availableFrom = availableFrom;
+      }
+
+      if (availableUntil !== undefined) {
+        updateData.availableUntil = availableUntil;
+      }
+
       await db
         .update(availabilityTable)
-        .set({
-          isAvailable,
-          availableFrom: availableFrom || null,
-          availableUntil: availableUntil || null,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(availabilityTable.id, currentAvailability[0].id));
     } else {
       // Otherwise create a new availability record
@@ -67,7 +77,7 @@ export async function toggleBayAvailability(
     }
 
     return {
-      message: `Bay is now ${isAvailable ? "available" : "unavailable"}`,
+      message: `Availability updated successfully`,
     };
   } catch (error) {
     const errorMessage = "Error updating bay availability: " + error;
@@ -88,7 +98,7 @@ export async function getAvailableBays() {
       return { error: "You must be logged in" };
     }
 
-    // Get all bays with their availability info
+    // Get all bays with their availability info and check for active claims
     const availableBays = await db
       .select({
         bay: bayTable,
@@ -100,7 +110,16 @@ export async function getAvailableBays() {
       })
       .from(bayTable)
       .innerJoin(availabilityTable, eq(bayTable.id, availabilityTable.bayId))
-      .where(eq(availabilityTable.isAvailable, true));
+      .leftJoin(
+        claimTable,
+        and(eq(bayTable.id, claimTable.bayId), isNull(claimTable.releasedAt))
+      )
+      .where(
+        and(
+          eq(availabilityTable.isAvailable, true),
+          isNull(claimTable.id) // Only include bays with no active claims
+        )
+      );
 
     // Filter out bays that are outside their availability window
     const now = new Date();

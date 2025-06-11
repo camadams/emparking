@@ -44,7 +44,16 @@ function AvailableBaysSection() {
   });
 
   // Handle claiming a bay
-  async function onClaimBay(bayId: number) {
+  async function onClaimBay(bayId: number, availableUntil: Date | null) {
+    // Confirm with the user about bay availability responsibilities
+    const confirmed = window.confirm(
+      `Please confirm that you understand this bay is only available until ${availableUntil?.toLocaleString()}. You must be responsible to move before that time and to unclaim the bay in this app when you're done using it.`
+    );
+
+    if (!confirmed) {
+      return; // User canceled the action
+    }
+
     const result = await claimBay(bayId);
 
     if (result.error) {
@@ -155,7 +164,9 @@ function AvailableBaysSection() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => onClaimBay(item.bay.id)}
+                onClick={() =>
+                  onClaimBay(item.bay.id, item.availability.availableUntil)
+                }
                 disabled={claimedBayIds.has(item.bay.id)}
               >
                 {claimedBayIds.has(item.bay.id)
