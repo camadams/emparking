@@ -53,6 +53,7 @@ export function Providers({ children }: { children: ReactNode }) {
           // Clear router cache (protected routes)
           router.refresh();
         }}
+        settingsURL="/dashboard/settings"
         Link={Link}
         avatar={true}
         providers={["google"]}

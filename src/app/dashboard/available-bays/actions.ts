@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { bayTable, availabilityTable, claimTable } from "@/db/schema";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { bayTable, availabilityTable, claimTable, user } from "@/db/schema";
+import { eq, and, isNull, desc, gt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { sql } from "drizzle-orm";
@@ -152,10 +152,7 @@ export async function getMyActiveClaims() {
       .from(claimTable)
       .innerJoin(bayTable, eq(claimTable.bayId, bayTable.id))
       // Join with the availability table to get the releaseBy date
-      .leftJoin(
-        availabilityTable,
-        eq(availabilityTable.bayId, bayTable.id)
-      )
+      .leftJoin(availabilityTable, eq(availabilityTable.bayId, bayTable.id))
       .where(
         and(
           eq(claimTable.claimerId, session.user.id),
@@ -166,6 +163,79 @@ export async function getMyActiveClaims() {
     return { activeClaims };
   } catch (error) {
     const errorMessage = "Error fetching active claims: " + error;
+    console.error(errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+/**
+ * Get future available bays (not yet available but will be in future)
+ */
+export async function getFutureAvailableBays() {
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (!session?.user?.id) {
+      return { error: "You must be logged in" };
+    }
+
+    // Get all bays with future availability info and check for active claims
+    const now = new Date();
+
+    const data = await db
+      .select({
+        bay: bayTable,
+        availability: availabilityTable,
+        ownerName:
+          sql<string>`(SELECT name FROM "user" WHERE id = ${bayTable.ownerId})`.as(
+            "ownerName"
+          ),
+      })
+      .from(bayTable)
+      .innerJoin(availabilityTable, eq(bayTable.id, availabilityTable.bayId))
+      .leftJoin(
+        claimTable,
+        and(eq(bayTable.id, claimTable.bayId), isNull(claimTable.releasedAt))
+      )
+      .where(
+        and(
+          eq(availabilityTable.isAvailable, true),
+          gt(availabilityTable.availableFrom, now), // Key difference: available in the future
+          isNull(claimTable.id) // Only include bays with no active claims
+        )
+      );
+
+    return { data };
+  } catch (error) {
+    const errorMessage = "Error fetching future available bays: " + error;
+    console.error(errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+export async function getAvailableBays2() {
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (!session?.user?.id) {
+      return { error: "You must be logged in" };
+    }
+
+    const data = await db
+      .select({
+        bay: bayTable,
+        availability: availabilityTable,
+        ownerName: user.name,
+      })
+      .from(bayTable)
+      .leftJoin(availabilityTable, eq(bayTable.id, availabilityTable.bayId))
+      .leftJoin(user, eq(bayTable.ownerId, user.id));
+
+    return { data };
+  } catch (error) {
+    const errorMessage = "Error fetching available bays: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }

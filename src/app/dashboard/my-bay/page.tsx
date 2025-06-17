@@ -221,6 +221,20 @@ function MyBaySection() {
       availableUntil = combineDateTime(untilDate, untilTime);
     }
 
+    if (!availableFrom || !availableUntil) {
+      toast.error("Please select a date range");
+      setIsToggling(false);
+      return;
+    }
+
+    if (availableFrom >= availableUntil) {
+      toast.error(
+        "Available From date must be earlier than Available Until date"
+      );
+      setIsToggling(false);
+      return;
+    }
+
     const result = await toggleBayAvailability(
       myBayData.bay.id,
       isAvailable,
@@ -266,45 +280,6 @@ function MyBaySection() {
     const beforeEnd = !availableUntil || availableUntil >= now;
 
     return afterStart && beforeEnd;
-  }
-
-  // Component to display bay availability status
-  function AvailabilityStatusMessage({
-    availableFrom,
-    availableUntil,
-  }: {
-    availableFrom: Date | null;
-    availableUntil: Date | null;
-  }) {
-    if (!availableFrom && !availableUntil) {
-      return (
-        <p className="text-sm text-amber-500">
-          Your bay is not currently visible to other residents as you need to
-          fill in the availability dates.
-        </p>
-      );
-    }
-    const isCurrentlyAvailable = isWithinAvailabilityWindow(
-      availableFrom,
-      availableUntil
-    );
-
-    if (isCurrentlyAvailable) {
-      return (
-        <p className="text-sm text-muted-foreground">
-          Your bay is currently visible to other residents who may request to
-          use it.
-        </p>
-      );
-    }
-
-    return (
-      <p className="text-sm text-amber-500">
-        Your bay is scheduled to be available{" "}
-        {availableFrom ? `from ${availableFrom.toLocaleString()}` : ""}
-        {availableUntil ? ` until ${availableUntil.toLocaleString()}` : ""}.
-      </p>
-    );
   }
 
   // Show registration form if no bay exists
@@ -381,7 +356,7 @@ function MyBaySection() {
   }
 
   // Show loading state
-  if (isLoadingBay) {
+  if (isLoadingBay || !myBayData) {
     return <div className="text-center p-8">Loading your bay details...</div>;
   }
 
@@ -500,14 +475,6 @@ function MyBaySection() {
             </div>
           )}
         </div>
-
-        {/* Status messages based on availability and claim status */}
-        {myBayData?.availability?.isAvailable && !myBayData?.activeClaim && (
-          <AvailabilityStatusMessage
-            availableFrom={myBayData.availability.availableFrom}
-            availableUntil={myBayData.availability.availableUntil}
-          />
-        )}
 
         {/* Display claim status: either claimed or not claimed */}
         {myBayData?.bay && (

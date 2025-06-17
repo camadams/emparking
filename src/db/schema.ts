@@ -84,7 +84,7 @@ export type NewDummy = typeof dummyTable.$inferInsert;
 // Bay table - represents a parking bay owned by a resident
 export const bayTable = pgTable("bay", {
   id: serial("id").primaryKey(),
-  label: text("label").notNull(),  // e.g., "A23"
+  label: text("label").notNull(), // e.g., "A23"
   ownerId: text("owner_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -115,7 +115,7 @@ export const claimTable = pgTable("claim", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   claimedAt: timestamp("claimed_at").notNull().defaultNow(),
-  expectedDuration: integer("expected_duration"),  // in minutes
+  expectedDuration: integer("expected_duration"), // in minutes
   releasedAt: timestamp("released_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
