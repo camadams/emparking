@@ -21,7 +21,7 @@ export async function registerBay(label: string, confirmOwnership: boolean) {
     if (!label || label.trim().length < 1) {
       return { error: "Bay label is required" };
     }
-    
+
     if (!confirmOwnership) {
       return { error: "You must confirm that this is your bay" };
     }
@@ -35,15 +35,18 @@ export async function registerBay(label: string, confirmOwnership: boolean) {
     if (existingBays.length > 0) {
       return { error: "You already have a registered bay" };
     }
-    
+
     // Check if a bay with this label already exists
     const existingBayWithLabel = await db
       .select()
       .from(bayTable)
       .where(eq(bayTable.label, label.trim()));
-      
+
     if (existingBayWithLabel.length > 0) {
-      return { error: "A bay with this label already exists. Please enter a unique label." };
+      return {
+        error:
+          "A bay with this label already exists. Please enter a unique label.",
+      };
     }
 
     // Create the bay record
@@ -111,15 +114,12 @@ export async function getMyBay() {
           id: user.id,
           name: user.name,
           email: user.email,
-          image: user.image
-        }
+          image: user.image,
+        },
       })
       .from(claimTable)
       .where(
-        and(
-          eq(claimTable.bayId, bay[0].id),
-          isNull(claimTable.releasedAt)
-        )
+        and(eq(claimTable.bayId, bay[0].id), isNull(claimTable.releasedAt))
       )
       .innerJoin(user, eq(claimTable.claimerId, user.id))
       .orderBy(desc(claimTable.claimedAt))
@@ -128,10 +128,13 @@ export async function getMyBay() {
     return {
       bay: bay[0],
       availability: availability[0] || null,
-      activeClaim: activeClaims.length > 0 ? {
-        ...activeClaims[0].claim,
-        claimer: activeClaims[0].claimer
-      } : null
+      activeClaim:
+        activeClaims.length > 0
+          ? {
+              ...activeClaims[0].claim,
+              claimer: activeClaims[0].claimer,
+            }
+          : null,
     };
   } catch (error) {
     const errorMessage = "Error fetching bay: " + error;
@@ -168,18 +171,23 @@ export async function updateBayLabel(bayId: number, newLabel: string) {
         error: "Bay not found or you don't have permission to update it",
       };
     }
-    
+
     // Check if a bay with this label already exists (excluding the current bay)
     const existingBayWithLabel = await db
       .select()
       .from(bayTable)
-      .where(and(
-        eq(bayTable.label, newLabel.trim()),
-        ne(bayTable.id, bayId) // Not equal to current bay ID
-      ));
-      
+      .where(
+        and(
+          eq(bayTable.label, newLabel.trim()),
+          ne(bayTable.id, bayId) // Not equal to current bay ID
+        )
+      );
+
     if (existingBayWithLabel.length > 0) {
-      return { error: "A bay with this label already exists. Please enter a unique label." };
+      return {
+        error:
+          "A bay with this label already exists. Please enter a unique label.",
+      };
     }
 
     // Update the bay label
@@ -194,6 +202,82 @@ export async function updateBayLabel(bayId: number, newLabel: string) {
     return { message: "Bay updated successfully" };
   } catch (error) {
     const errorMessage = "Error updating bay: " + error;
+    console.error(errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+export async function toggleBayAvailability(
+  bayId: number,
+  isAvailable: boolean,
+  availableFrom?: Date,
+  availableUntil?: Date
+) {
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (!session?.user?.id) {
+      return { error: "You must be logged in" };
+    }
+
+    // Verify ownership
+    const bay = await db
+      .select()
+      .from(bayTable)
+      .where(and(eq(bayTable.id, bayId), eq(bayTable.ownerId, session.user.id)))
+      .limit(1);
+
+    if (!bay || bay.length === 0) {
+      return {
+        error: "Bay not found or you don't have permission to update it",
+      };
+    }
+
+    // Get current availability
+    const currentAvailability = await db
+      .select()
+      .from(availabilityTable)
+      .where(eq(availabilityTable.bayId, bayId))
+      .orderBy(desc(availabilityTable.updatedAt))
+      .limit(1);
+
+    // If there's an existing record, update it
+    if (currentAvailability && currentAvailability.length > 0) {
+      // Prepare the update object - keep existing values if new ones not provided
+      const updateData: any = {
+        isAvailable,
+        updatedAt: new Date(),
+      };
+
+      // Only update date fields if new values are provided
+      if (availableFrom !== undefined) {
+        updateData.availableFrom = availableFrom;
+      }
+
+      if (availableUntil !== undefined) {
+        updateData.availableUntil = availableUntil;
+      }
+
+      await db
+        .update(availabilityTable)
+        .set(updateData)
+        .where(eq(availabilityTable.id, currentAvailability[0].id));
+    } else {
+      // Otherwise create a new availability record
+      await db.insert(availabilityTable).values({
+        bayId,
+        isAvailable,
+        availableFrom: availableFrom || null,
+        availableUntil: availableUntil || null,
+      });
+    }
+
+    return {
+      message: `Availability updated successfully`,
+    };
+  } catch (error) {
+    const errorMessage = "Error updating bay availability: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }

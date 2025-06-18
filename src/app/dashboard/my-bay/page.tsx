@@ -1,8 +1,12 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
-import { getMyBay, registerBay, updateBayLabel } from "./actions";
-import { toggleBayAvailability } from "../bays/availability-actions";
+import {
+  getMyBay,
+  registerBay,
+  toggleBayAvailability,
+  updateBayLabel,
+} from "./actions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -61,33 +65,11 @@ export default function MyBayPage() {
   );
 }
 
-// Component for managing the current user's bay
 function MyBaySection() {
-  const queryClient = useQueryClient();
-
-  // Fetch the current user's bay
   const { data: myBayData, isLoading: isLoadingBay } = useQuery({
     queryKey: ["my-bay"],
     queryFn: getMyBay,
   });
-
-  // Form for registering a new bay
-  const registerForm = useForm<RegistrationFormValues>({
-    resolver: zodResolver(registrationFormSchema),
-    defaultValues: {
-      label: "",
-      confirmOwnership: false,
-    },
-  });
-
-  // Form for updating bay label
-  const updateForm = useForm<BayFormValues>({
-    resolver: zodResolver(bayFormSchema),
-    defaultValues: {
-      label: myBayData?.bay?.label || "",
-    },
-  });
-
   // State for toggling edit mode and availability settings
   const [isEditing, setIsEditing] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
@@ -116,6 +98,25 @@ function MyBaySection() {
       }
     }
   }, [myBayData?.availability]);
+
+  const queryClient = useQueryClient();
+
+  // Form for registering a new bay
+  const registerForm = useForm<RegistrationFormValues>({
+    resolver: zodResolver(registrationFormSchema),
+    defaultValues: {
+      label: "",
+      confirmOwnership: false,
+    },
+  });
+
+  // Form for updating bay label
+  const updateForm = useForm<BayFormValues>({
+    resolver: zodResolver(bayFormSchema),
+    defaultValues: {
+      label: myBayData?.bay?.label || "",
+    },
+  });
 
   // Handle bay registration
   async function onRegisterBay(values: RegistrationFormValues) {
@@ -448,7 +449,7 @@ function MyBaySection() {
           </div>
 
           {isAvailable && (
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-x-4 flex">
               <DateTimePicker
                 label="Available From"
                 date={fromDate}
@@ -465,13 +466,15 @@ function MyBaySection() {
                 onTimeChange={setUntilTime}
                 disabled={isToggling}
               />
-              <Button
-                onClick={updateAvailability}
-                disabled={isToggling}
-                className="w-full"
-              >
-                {isToggling ? "Updating..." : "Save Availability"}
-              </Button>
+              <div className="flex justify-end flex-col">
+                <Button
+                  onClick={updateAvailability}
+                  disabled={isToggling}
+                  className=""
+                >
+                  {isToggling ? "Updating..." : "Save Availability"}
+                </Button>
+              </div>
             </div>
           )}
         </div>

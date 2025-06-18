@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { saasConfig } from "@/saas-config";
-import { Home, ChartBar, Car, ParkingCircle } from "lucide-react";
+import { Home, ChartBar, Car, ParkingCircle, Info } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { UserButton } from "@daveyplate/better-auth-ui";
@@ -41,6 +41,11 @@ const items = [
     title: "Available Bays",
     url: "/dashboard/available-bays",
     icon: ParkingCircle,
+  },
+  {
+    title: "About",
+    url: "/dashboard/about",
+    icon: Info,
   },
 ];
 

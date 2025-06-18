@@ -1,7 +1,6 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { getAvailableBays } from "../bays/availability-actions";
 import {
   getMyActiveClaims,
   releaseBay,
