@@ -85,6 +85,7 @@ export type NewDummy = typeof dummyTable.$inferInsert;
 export const bayTable = pgTable("bay", {
   id: serial("id").primaryKey(),
   label: text("label").notNull(), // e.g., "A23"
+  isVisible: boolean("is_visible").notNull().default(true),
   ownerId: text("owner_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -108,9 +109,9 @@ export const availabilityTable = pgTable("availability", {
 // Claim table - represents when someone claims a bay for use
 export const claimTable = pgTable("claim", {
   id: serial("id").primaryKey(),
-  bayId: integer("bay_id")
+  availabilityId: integer("availability_id")
     .notNull()
-    .references(() => bayTable.id, { onDelete: "cascade" }),
+    .references(() => availabilityTable.id, { onDelete: "cascade" }),
   claimerId: text("claimer_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),

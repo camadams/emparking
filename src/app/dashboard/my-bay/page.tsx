@@ -70,10 +70,10 @@ function MyBaySection() {
     queryKey: ["my-bay"],
     queryFn: getMyBay,
   });
-  // State for toggling edit mode and availability settings
+  // State for toggling edit mode and visibility settings
   const [isEditing, setIsEditing] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-  const [isAvailable, setIsAvailable] = useState(false);
+  // const [isAvailable, setIsAvailable] = useState(false);
 
   // State for date/time pickers
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
@@ -81,23 +81,23 @@ function MyBaySection() {
   const [untilDate, setUntilDate] = useState<Date | undefined>(undefined);
   const [untilTime, setUntilTime] = useState("23:59");
 
-  // Load current availability data
-  useEffect(() => {
-    if (myBayData?.availability) {
-      setIsAvailable(myBayData.availability.isAvailable);
-      if (myBayData.availability.availableFrom) {
-        const fromDateTime = new Date(myBayData.availability.availableFrom);
-        setFromDate(fromDateTime);
-        setFromTime(fromDateTime.toTimeString().substring(0, 5));
-      }
+  // // Load current availability data
+  // useEffect(() => {
+  //   if (myBayData?.availability) {
+  //     setIsAvailable(myBayData.availability.isAvailable);
+  //     if (myBayData.availability.availableFrom) {
+  //       const fromDateTime = new Date(myBayData.availability.availableFrom);
+  //       setFromDate(fromDateTime);
+  //       setFromTime(fromDateTime.toTimeString().substring(0, 5));
+  //     }
 
-      if (myBayData.availability.availableUntil) {
-        const untilDateTime = new Date(myBayData.availability.availableUntil);
-        setUntilDate(untilDateTime);
-        setUntilTime(untilDateTime.toTimeString().substring(0, 5));
-      }
-    }
-  }, [myBayData?.availability]);
+  //     if (myBayData.availability.availableUntil) {
+  //       const untilDateTime = new Date(myBayData.availability.availableUntil);
+  //       setUntilDate(untilDateTime);
+  //       setUntilTime(untilDateTime.toTimeString().substring(0, 5));
+  //     }
+  //   }
+  // }, [myBayData?.availability]);
 
   const queryClient = useQueryClient();
 
@@ -182,14 +182,17 @@ function MyBaySection() {
     return combined;
   }
 
-  async function toggleAvailability() {
+  async function toggleVisibility() {
     if (!myBayData?.bay?.id) {
       toast.error("Bay ID not found");
       return;
     }
     setIsToggling(true);
 
-    const result = await toggleBayAvailability(myBayData.bay.id, !isAvailable);
+    const result = await toggleBayAvailability(
+      myBayData.bay.id,
+      !myBayData.bay.isVisible
+    );
 
     if (result.error) {
       toast.error(result.error);
@@ -205,7 +208,7 @@ function MyBaySection() {
     }
   }
 
-  // Handle toggling bay availability
+  // Handle updating time period dates while maintaining bay visibility
   async function updateAvailability() {
     if (!myBayData?.bay?.id) {
       toast.error("Bay ID not found");
@@ -214,13 +217,8 @@ function MyBaySection() {
     setIsToggling(true);
 
     // Prepare date objects by combining date and time values
-    let availableFrom: Date | undefined;
-    let availableUntil: Date | undefined;
-
-    if (isAvailable) {
-      availableFrom = combineDateTime(fromDate, fromTime);
-      availableUntil = combineDateTime(untilDate, untilTime);
-    }
+    const availableFrom = combineDateTime(fromDate, fromTime);
+    const availableUntil = combineDateTime(untilDate, untilTime);
 
     if (!availableFrom || !availableUntil) {
       toast.error("Please select a date range");
@@ -238,7 +236,7 @@ function MyBaySection() {
 
     const result = await toggleBayAvailability(
       myBayData.bay.id,
-      isAvailable,
+      myBayData.bay.isVisible,
       availableFrom,
       availableUntil
     );
@@ -367,7 +365,7 @@ function MyBaySection() {
       <CardHeader>
         <CardTitle>My Parking Bay</CardTitle>
         <CardDescription>
-          Manage your bay details and availability
+          Manage your bay details and visibility
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -429,30 +427,40 @@ function MyBaySection() {
         <div className="pt-4 border-t">
           <div className="flex justify-between items-center">
             <div>
-              <p className="font-medium">Availability Status</p>
+              <p className="font-medium">Visibility Status</p>
               <p
                 className={`font-bold ${
-                  isAvailable ? "text-green-500" : "text-red-500"
+                  myBayData?.bay?.isVisible ? "text-green-500" : "text-red-500"
                 }`}
               >
-                {isAvailable ? "Available" : "Unavailable"}
+                {myBayData?.bay?.isVisible ? "Visible" : "Hidden"}
               </p>
             </div>
             <div className="flex items-center space-x-2">
               <Switch
-                checked={isAvailable}
-                onCheckedChange={(checked) => toggleAvailability()}
+                checked={myBayData?.bay?.isVisible}
+                onCheckedChange={(checked) => toggleVisibility()}
                 disabled={isToggling}
               />
-              <span className="text-sm">{isAvailable ? "On" : "Off"}</span>
+              <span className="text-sm">
+                {myBayData?.bay?.isVisible ? "On" : "Off"}
+              </span>
             </div>
           </div>
+        </div>
 
-          {isAvailable && (
-            <div className="mt-4 space-x-4 flex">
+        {myBayData?.availability?.map((availability) => {
+          const fromTime = availability
+            .availableFrom!.toTimeString()
+            .substring(0, 5);
+          const untilTime = availability
+            .availableUntil!.toTimeString()
+            .substring(0, 5);
+          return (
+            <div key={availability.id} className="mt-4 space-x-4 flex">
               <DateTimePicker
                 label="Available From"
-                date={fromDate}
+                date={availability.availableFrom!}
                 onDateChange={setFromDate}
                 time={fromTime}
                 onTimeChange={setFromTime}
@@ -460,7 +468,7 @@ function MyBaySection() {
               />
               <DateTimePicker
                 label="Available Until"
-                date={untilDate}
+                date={availability.availableUntil!}
                 onDateChange={setUntilDate}
                 time={untilTime}
                 onTimeChange={setUntilTime}
@@ -472,12 +480,12 @@ function MyBaySection() {
                   disabled={isToggling}
                   className=""
                 >
-                  {isToggling ? "Updating..." : "Save Availability"}
+                  {isToggling ? "Updating..." : "Save Time Period"}
                 </Button>
               </div>
             </div>
-          )}
-        </div>
+          );
+        })}
 
         {/* Display claim status: either claimed or not claimed */}
         {myBayData?.bay && (

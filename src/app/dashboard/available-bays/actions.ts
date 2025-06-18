@@ -8,9 +8,12 @@ import { headers } from "next/headers";
 import { sql } from "drizzle-orm";
 
 /**
- * Claim a bay for use
+ * Claim an availability for use
  */
-export async function claimBay(bayId: number, expectedDuration?: number) {
+export async function claimBay(
+  availabilityId: number,
+  expectedDuration?: number
+) {
   try {
     const headersList = await headers();
     const session = await auth.api.getSession({ headers: headersList });
@@ -19,67 +22,61 @@ export async function claimBay(bayId: number, expectedDuration?: number) {
       return { error: "You must be logged in" };
     }
 
-    // Verify the bay exists
-    const bay = await db
-      .select()
-      .from(bayTable)
-      .where(eq(bayTable.id, bayId))
-      .limit(1);
-
-    if (!bay || bay.length === 0) {
-      return { error: "Bay not found" };
-    }
-
-    // Check if the bay is available
+    // Verify the availability exists
     const availability = await db
       .select()
       .from(availabilityTable)
-      .where(eq(availabilityTable.bayId, bayId))
-      .orderBy(desc(availabilityTable.updatedAt))
+      .where(eq(availabilityTable.id, availabilityId))
       .limit(1);
 
-    if (
-      !availability ||
-      availability.length === 0 ||
-      !availability[0].isAvailable
-    ) {
-      return { error: "This bay is not available for use" };
+    if (!availability || availability.length === 0) {
+      return { error: "Availability not found" };
     }
 
-    // Check if there's already an active claim on this bay
+    // Check if the availability is active
+    if (!availability[0].isAvailable) {
+      return { error: "This availability is not active" };
+    }
+
+    // Check if there's already an active claim on this availability
     const activeClaims = await db
       .select()
       .from(claimTable)
-      .where(and(eq(claimTable.bayId, bayId), isNull(claimTable.releasedAt)))
+      .where(
+        and(
+          eq(claimTable.availabilityId, availabilityId),
+          isNull(claimTable.releasedAt)
+        )
+      )
       .limit(1);
 
     if (activeClaims && activeClaims.length > 0) {
-      return { error: "This bay is already claimed by someone else" };
+      return { error: "This availability is already claimed by someone else" };
     }
 
     // Create the claim
     const [claim] = await db
       .insert(claimTable)
       .values({
-        bayId,
+        availabilityId,
         claimerId: session.user.id,
         expectedDuration: expectedDuration || null,
       })
       .returning();
 
     return {
-      message: "Bay claimed successfully",
+      message: "Availability claimed successfully",
       claim,
     };
   } catch (error) {
-    const errorMessage = "Error claiming bay: " + error;
+    const errorMessage = "Error claiming availability: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }
 }
 
 /**
- * Release a claimed bay
+ * Release a claimed availability
  */
 export async function releaseBay(claimId: number) {
   try {
@@ -117,10 +114,10 @@ export async function releaseBay(claimId: number) {
       .where(eq(claimTable.id, claimId));
 
     return {
-      message: "Bay released successfully",
+      message: "Availability released successfully",
     };
   } catch (error) {
-    const errorMessage = "Error releasing bay: " + error;
+    const errorMessage = "Error releasing availability: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }
@@ -144,15 +141,15 @@ export async function getMyActiveClaims() {
         claim: claimTable,
         bay: bayTable,
         availability: availabilityTable,
-        ownerName:
-          sql<string>`(SELECT name FROM "user" WHERE id = ${bayTable.ownerId})`.as(
-            "ownerName"
-          ),
+        ownerName: user.name,
       })
       .from(claimTable)
-      .innerJoin(bayTable, eq(claimTable.bayId, bayTable.id))
-      // Join with the availability table to get the releaseBy date
-      .leftJoin(availabilityTable, eq(availabilityTable.bayId, bayTable.id))
+      .innerJoin(
+        availabilityTable,
+        eq(claimTable.availabilityId, availabilityTable.id)
+      )
+      .innerJoin(bayTable, eq(availabilityTable.bayId, bayTable.id))
+      .innerJoin(user, eq(bayTable.ownerId, user.id))
       .where(
         and(
           eq(claimTable.claimerId, session.user.id),
@@ -196,7 +193,10 @@ export async function getFutureAvailableBays() {
       .innerJoin(availabilityTable, eq(bayTable.id, availabilityTable.bayId))
       .leftJoin(
         claimTable,
-        and(eq(bayTable.id, claimTable.bayId), isNull(claimTable.releasedAt))
+        and(
+          eq(availabilityTable.id, claimTable.availabilityId),
+          isNull(claimTable.releasedAt)
+        )
       )
       .where(
         and(

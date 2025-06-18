@@ -58,24 +58,24 @@ function AvailableBaysSection() {
     queryFn: getMyActiveClaims,
   });
 
-  // Handle claiming a bay
+  // Handle claiming an availability
   async function onClaimBay(
-    bayId: number,
+    availabilityId: number,
     availableUntil: Date | null,
     isFutureAvailability: boolean = false
   ) {
-    // Confirm with the user about bay availability responsibilities
+    // Confirm with the user about availability responsibilities
     const confirmed = window.confirm(
-      `Please confirm that you understand this bay is only available until ${
+      `Please confirm that you understand this parking spot is only available until ${
         availableUntil ? format(availableUntil, "p eeee, do MMM") : "Error"
-      }. You must be responsible to move before that time and to unclaim the bay in this app when you're done using it.`
+      }. You must be responsible to move before that time and to release the claim in this app when you're done using it.`
     );
 
     if (!confirmed) {
       return; // User canceled the action
     }
 
-    const result = await claimBay(bayId);
+    const result = await claimBay(availabilityId);
 
     if (result.error) {
       toast.error(result.error);
@@ -174,11 +174,10 @@ function AvailableBaysSection() {
       );
     }
 
-    // Create a map of claimed bay IDs for quick lookup
-    const claimedBayIds = new Set(
-      (claimsData?.activeClaims || []).map((item) => item.bay.id)
+    // Create a map of claimed availability IDs for quick lookup
+    const claimedAvailabilityIds = new Set(
+      (claimsData?.activeClaims || []).map((item) => item.availability.id)
     );
-
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {availableBays.data
@@ -215,11 +214,14 @@ function AvailableBaysSection() {
                   variant="default"
                   size="sm"
                   onClick={() =>
-                    onClaimBay(item.bay.id, item.availability?.availableUntil!)
+                    onClaimBay(
+                      item.availability?.id!,
+                      item.availability?.availableUntil!
+                    )
                   }
-                  disabled={claimedBayIds.has(item.bay.id)}
+                  disabled={claimedAvailabilityIds.has(item.availability?.id!)}
                 >
-                  {claimedBayIds.has(item.bay.id)
+                  {claimedAvailabilityIds.has(item.availability?.id!)
                     ? "Already Claimed"
                     : "Claim Bay"}
                 </Button>
@@ -241,8 +243,8 @@ function AvailableBaysSection() {
     }
 
     // Create a map of claimed bay IDs for quick lookup
-    const claimedBayIds = new Set(
-      (claimsData?.activeClaims || []).map((item) => item.bay.id)
+    const claimedAvailabilityIds = new Set(
+      (claimsData?.activeClaims || []).map((item) => item.availability.id)
     );
 
     return (
@@ -255,7 +257,10 @@ function AvailableBaysSection() {
               item.availability?.availableFrom > now
           )
           .map((item) => (
-            <Card key={item.bay.id} className="overflow-hidden border-blue-300">
+            <Card
+              key={item.availability?.id}
+              className="overflow-hidden border-blue-300"
+            >
               <CardHeader className="bg-blue-50">
                 <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
                 <CardDescription>Owner: {item.ownerName}</CardDescription>
@@ -280,14 +285,14 @@ function AvailableBaysSection() {
                   size="sm"
                   onClick={() =>
                     onClaimBay(
-                      item.bay.id,
+                      item.availability?.id!,
                       item.availability?.availableUntil!,
                       true
                     )
                   }
-                  disabled={claimedBayIds.has(item.bay.id)}
+                  disabled={claimedAvailabilityIds.has(item.availability?.id!)}
                 >
-                  {claimedBayIds.has(item.bay.id)
+                  {claimedAvailabilityIds.has(item.availability?.id!)
                     ? "Already Claimed"
                     : "Claim Future Bay"}
                 </Button>
@@ -345,7 +350,7 @@ function AvailableBaysSection() {
               onClick={(e) => {
                 e.stopPropagation();
                 onClaimBay(
-                  item.bay.id,
+                  item.availability?.id!,
                   item.availability?.availableUntil!,
                   isFutureAvailability
                 );

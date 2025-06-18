@@ -95,6 +95,7 @@ export async function getMyBay() {
       .limit(1);
 
     if (!bay || bay.length === 0) {
+      console.log("No bay found");
       return { bay: null };
     }
 
@@ -103,8 +104,7 @@ export async function getMyBay() {
       .select()
       .from(availabilityTable)
       .where(eq(availabilityTable.bayId, bay[0].id))
-      .orderBy(availabilityTable.updatedAt)
-      .limit(1);
+      .orderBy(availabilityTable.updatedAt);
 
     // Get active claim for this bay (if any)
     const activeClaims = await db
@@ -116,10 +116,18 @@ export async function getMyBay() {
           email: user.email,
           image: user.image,
         },
+        availability: availabilityTable,
       })
       .from(claimTable)
+      .innerJoin(
+        availabilityTable,
+        eq(claimTable.availabilityId, availabilityTable.id)
+      )
       .where(
-        and(eq(claimTable.bayId, bay[0].id), isNull(claimTable.releasedAt))
+        and(
+          eq(availabilityTable.bayId, bay[0].id),
+          isNull(claimTable.releasedAt)
+        )
       )
       .innerJoin(user, eq(claimTable.claimerId, user.id))
       .orderBy(desc(claimTable.claimedAt))
@@ -127,7 +135,7 @@ export async function getMyBay() {
 
     return {
       bay: bay[0],
-      availability: availability[0] || null,
+      availability: availability || null,
       activeClaim:
         activeClaims.length > 0
           ? {
@@ -209,7 +217,7 @@ export async function updateBayLabel(bayId: number, newLabel: string) {
 
 export async function toggleBayAvailability(
   bayId: number,
-  isAvailable: boolean,
+  isVisible: boolean,
   availableFrom?: Date,
   availableUntil?: Date
 ) {
@@ -234,50 +242,52 @@ export async function toggleBayAvailability(
       };
     }
 
-    // Get current availability
-    const currentAvailability = await db
-      .select()
-      .from(availabilityTable)
-      .where(eq(availabilityTable.bayId, bayId))
-      .orderBy(desc(availabilityTable.updatedAt))
-      .limit(1);
-
-    // If there's an existing record, update it
-    if (currentAvailability && currentAvailability.length > 0) {
-      // Prepare the update object - keep existing values if new ones not provided
-      const updateData: any = {
-        isAvailable,
+    // Update bay visibility status
+    await db
+      .update(bayTable)
+      .set({
+        isVisible: isVisible,
         updatedAt: new Date(),
-      };
+      })
+      .where(eq(bayTable.id, bayId));
 
-      // Only update date fields if new values are provided
-      if (availableFrom !== undefined) {
-        updateData.availableFrom = availableFrom;
+    // If dates were provided, update or create an availability record
+    if (availableFrom && availableUntil) {
+      // Get current availability
+      const currentAvailability = await db
+        .select()
+        .from(availabilityTable)
+        .where(eq(availabilityTable.bayId, bayId))
+        .orderBy(desc(availabilityTable.updatedAt))
+        .limit(1);
+
+      // If there's an existing record, update it
+      if (currentAvailability && currentAvailability.length > 0) {
+        await db
+          .update(availabilityTable)
+          .set({
+            isAvailable: isVisible, // Match isAvailable with isVisible for compatibility
+            availableFrom: availableFrom,
+            availableUntil: availableUntil,
+            updatedAt: new Date(),
+          })
+          .where(eq(availabilityTable.id, currentAvailability[0].id));
+      } else {
+        // Otherwise create a new availability record
+        await db.insert(availabilityTable).values({
+          bayId,
+          isAvailable: isVisible, // Match isAvailable with isVisible for compatibility
+          availableFrom: availableFrom,
+          availableUntil: availableUntil,
+        });
       }
-
-      if (availableUntil !== undefined) {
-        updateData.availableUntil = availableUntil;
-      }
-
-      await db
-        .update(availabilityTable)
-        .set(updateData)
-        .where(eq(availabilityTable.id, currentAvailability[0].id));
-    } else {
-      // Otherwise create a new availability record
-      await db.insert(availabilityTable).values({
-        bayId,
-        isAvailable,
-        availableFrom: availableFrom || null,
-        availableUntil: availableUntil || null,
-      });
     }
 
     return {
-      message: `Availability updated successfully`,
+      message: `Bay visibility updated successfully`,
     };
   } catch (error) {
-    const errorMessage = "Error updating bay availability: " + error;
+    const errorMessage = "Error updating bay visibility: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }
