@@ -511,13 +511,6 @@ function MyBaySection() {
           </div>
         </div>
 
-        <div>
-          From time: {fromTime}
-          Until time: {untilTime}
-          From date: {fromDate?.toDateString()}
-          Until date: {untilDate?.toDateString()}
-        </div>
-
         <div className="flex flex-col gap-6">
           {myBayData?.availability?.map((availability) => {
             const fromTimeData = availability
