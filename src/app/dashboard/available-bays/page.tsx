@@ -183,7 +183,7 @@ function AvailableBaysSection() {
         {availableBays.data
           .filter(
             (item) =>
-              item.availability?.isAvailable &&
+              item.bay?.isVisible &&
               item.availability?.availableUntil &&
               item.availability?.availableUntil > now &&
               item.availability?.availableFrom &&
@@ -252,7 +252,7 @@ function AvailableBaysSection() {
         {availableBays.data
           .filter(
             (item) =>
-              item.availability?.isAvailable &&
+              item.bay?.isVisible &&
               item.availability?.availableFrom &&
               item.availability?.availableFrom > now
           )
@@ -383,7 +383,7 @@ function AvailableBaysSection() {
     // Filter current and future availability bays
     const currentBays = availableBays.data.filter(
       (item) =>
-        item.availability?.isAvailable &&
+        item.bay?.isVisible &&
         item.availability?.availableUntil &&
         item.availability?.availableUntil > now &&
         item.availability?.availableFrom &&
@@ -392,7 +392,7 @@ function AvailableBaysSection() {
 
     const futureBays = availableBays.data.filter(
       (item) =>
-        item.availability?.isAvailable &&
+        item.bay?.isVisible &&
         item.availability?.availableFrom &&
         item.availability?.availableFrom > now
     );
