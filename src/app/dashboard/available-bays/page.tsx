@@ -5,8 +5,6 @@ import {
   getMyActiveClaims,
   releaseBay,
   claimBay,
-  getFutureAvailableBays,
-  getAvailableBays2,
   getAvailablilties,
 } from "./actions";
 import { useAuthenticate } from "@daveyplate/better-auth-ui";

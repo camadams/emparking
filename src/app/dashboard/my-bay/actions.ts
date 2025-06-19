@@ -215,11 +215,10 @@ export async function updateBayLabel(bayId: number, newLabel: string) {
   }
 }
 
-export async function toggleBayAvailability(
-  bayId: number,
-  isVisible: boolean,
-  availableFrom?: Date,
-  availableUntil?: Date
+export async function updateAvailabilityAction(
+  availabilityId: number,
+  availableFrom: Date,
+  availableUntil: Date
 ) {
   try {
     const headersList = await headers();
@@ -229,65 +228,82 @@ export async function toggleBayAvailability(
       return { error: "You must be logged in" };
     }
 
-    // Verify ownership
-    const bay = await db
-      .select()
-      .from(bayTable)
-      .where(and(eq(bayTable.id, bayId), eq(bayTable.ownerId, session.user.id)))
-      .limit(1);
-
-    if (!bay || bay.length === 0) {
-      return {
-        error: "Bay not found or you don't have permission to update it",
-      };
-    }
-
-    // Update bay visibility status
     await db
-      .update(bayTable)
+      .update(availabilityTable)
       .set({
-        isVisible: isVisible,
+        isAvailable: true,
+        availableFrom: availableFrom,
+        availableUntil: availableUntil,
         updatedAt: new Date(),
       })
-      .where(eq(bayTable.id, bayId));
-
-    // If dates were provided, update or create an availability record
-    if (availableFrom && availableUntil) {
-      // Get current availability
-      const currentAvailability = await db
-        .select()
-        .from(availabilityTable)
-        .where(eq(availabilityTable.bayId, bayId))
-        .orderBy(desc(availabilityTable.updatedAt))
-        .limit(1);
-
-      // If there's an existing record, update it
-      if (currentAvailability && currentAvailability.length > 0) {
-        await db
-          .update(availabilityTable)
-          .set({
-            isAvailable: isVisible, // Match isAvailable with isVisible for compatibility
-            availableFrom: availableFrom,
-            availableUntil: availableUntil,
-            updatedAt: new Date(),
-          })
-          .where(eq(availabilityTable.id, currentAvailability[0].id));
-      } else {
-        // Otherwise create a new availability record
-        await db.insert(availabilityTable).values({
-          bayId,
-          isAvailable: isVisible, // Match isAvailable with isVisible for compatibility
-          availableFrom: availableFrom,
-          availableUntil: availableUntil,
-        });
-      }
-    }
+      .where(eq(availabilityTable.id, availabilityId));
 
     return {
       message: `Bay visibility updated successfully`,
     };
   } catch (error) {
     const errorMessage = "Error updating bay visibility: " + error;
+    console.error(errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+export async function toggleBayVisibility(bayId: number, isVisible: boolean) {
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (!session?.user?.id) {
+      return { error: "You must be logged in" };
+    }
+
+    await db
+      .update(bayTable)
+      .set({
+        isVisible,
+        updatedAt: new Date(),
+      })
+      .where(eq(bayTable.id, bayId));
+
+    return {
+      message: `Bay visibility updated successfully`,
+    };
+  } catch (error) {
+    const errorMessage = "Error updating bay visibility: " + error;
+    console.error(errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+export async function createAvailabilityAction(
+  bayId: number,
+  availableFrom: Date,
+  availableUntil: Date
+) {
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (!session?.user?.id) {
+      return { error: "You must be logged in" };
+    }
+
+    await db
+      .insert(availabilityTable)
+      .values({
+        isAvailable: true,
+        availableFrom: availableFrom,
+        availableUntil: availableUntil,
+        updatedAt: new Date(),
+        bayId: bayId,
+      })
+      .returning();
+
+    return {
+      message: `Availability created successfully`,
+    };
+  } catch (error) {
+    const errorMessage = "Error creating availability: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }

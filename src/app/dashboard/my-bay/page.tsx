@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import {
   getMyBay,
   registerBay,
-  toggleBayAvailability,
+  updateAvailabilityAction,
+  toggleBayVisibility,
   updateBayLabel,
+  createAvailabilityAction,
 } from "./actions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -81,6 +83,10 @@ function MyBaySection() {
   const [untilDate, setUntilDate] = useState<Date | undefined>(undefined);
   const [untilTime, setUntilTime] = useState("23:59");
 
+  const [selectedAvailabilityId, setSelectedAvailabilityId] =
+    useState<number>(0);
+
+  const [isAddingAvailability, setIsAddingAvailability] = useState(false);
   // // Load current availability data
   // useEffect(() => {
   //   if (myBayData?.availability) {
@@ -189,7 +195,7 @@ function MyBaySection() {
     }
     setIsToggling(true);
 
-    const result = await toggleBayAvailability(
+    const result = await toggleBayVisibility(
       myBayData.bay.id,
       !myBayData.bay.isVisible
     );
@@ -208,8 +214,8 @@ function MyBaySection() {
     }
   }
 
-  // Handle updating time period dates while maintaining bay visibility
-  async function updateAvailability() {
+  // Handle updating Availability dates while maintaining bay visibility
+  async function updateAvailability(availabilityId: number) {
     if (!myBayData?.bay?.id) {
       toast.error("Bay ID not found");
       return;
@@ -234,9 +240,8 @@ function MyBaySection() {
       return;
     }
 
-    const result = await toggleBayAvailability(
-      myBayData.bay.id,
-      myBayData.bay.isVisible,
+    const result = await updateAvailabilityAction(
+      availabilityId,
       availableFrom,
       availableUntil
     );
@@ -359,6 +364,63 @@ function MyBaySection() {
     return <div className="text-center p-8">Loading your bay details...</div>;
   }
 
+  const toggleAddingAvailability = () => {
+    const now = new Date();
+    setFromDate(now);
+    setFromTime("00:00");
+    setUntilDate(now);
+    setUntilTime("23:59");
+    setIsAddingAvailability(!isAddingAvailability);
+  };
+
+  const handleCreateAvailability = async () => {
+    if (!myBayData?.bay?.id) {
+      toast.error("Bay ID not found");
+      setIsAddingAvailability(false);
+      return;
+    }
+    // Prepare date objects by combining date and time values
+    const availableFrom = combineDateTime(fromDate, fromTime);
+    const availableUntil = combineDateTime(untilDate, untilTime);
+
+    if (!availableFrom || !availableUntil) {
+      toast.error("Please select a date range");
+      setIsAddingAvailability(false);
+      return;
+    }
+
+    if (availableFrom >= availableUntil) {
+      toast.error(
+        "Available From date must be earlier than Available Until date"
+      );
+      setIsAddingAvailability(false);
+      return;
+    }
+    const result = await createAvailabilityAction(
+      myBayData.bay.id,
+      availableFrom,
+      availableUntil
+    );
+
+    if (result.error) {
+      toast.error(result.error);
+      setIsAddingAvailability(false);
+      return;
+    }
+
+    if (result.message) {
+      toast.success(result.message);
+      setIsAddingAvailability(false);
+      queryClient.invalidateQueries({ queryKey: ["my-bay"] });
+    }
+  };
+  // const onAvailabilityChanged = (
+  //   setFromDate: (date: Date) => void
+  // ): ((date: Date) => void) => {
+  //   return (date: Date) => {
+  //     setFromDate(date);
+  //   };
+  // };
   // Show bay management UI once bay is registered
   return (
     <Card>
@@ -458,55 +520,111 @@ function MyBaySection() {
 
         <div className="flex flex-col gap-6">
           {myBayData?.availability?.map((availability) => {
-            const fromTime = availability
+            const fromTimeData = availability
               .availableFrom!.toTimeString()
               .substring(0, 5);
-            const untilTime = availability
+            const untilTimeData = availability
               .availableUntil!.toTimeString()
               .substring(0, 5);
             return (
               <div
                 key={availability.id}
-                className="mt-4 space-x-4 flex md:flex-row flex-col gap-2"
+                className="mt-4 space-x-4 flex md:flex-row flex-col gap-2 "
+                onClick={() => {
+                  if (selectedAvailabilityId === availability.id) {
+                    return;
+                  }
+                  setSelectedAvailabilityId(availability.id);
+                  setFromDate(availability.availableFrom!);
+                  setFromTime(fromTimeData);
+                  setUntilDate(availability.availableUntil!);
+                  setUntilTime(untilTimeData);
+                }}
               >
                 <DateTimePicker
                   label="Available From"
-                  date={availability.availableFrom!}
+                  date={
+                    selectedAvailabilityId === availability.id
+                      ? fromDate
+                      : availability.availableFrom!
+                  }
                   onDateChange={setFromDate}
-                  time={fromTime}
+                  time={
+                    selectedAvailabilityId === availability.id
+                      ? fromTime
+                      : fromTimeData
+                  }
                   onTimeChange={setFromTime}
                   disabled={isToggling}
                 />
                 <DateTimePicker
                   label="Available Until"
-                  date={availability.availableUntil!}
+                  date={
+                    selectedAvailabilityId === availability.id
+                      ? untilDate
+                      : availability.availableUntil!
+                  }
                   onDateChange={setUntilDate}
-                  time={untilTime}
+                  time={
+                    selectedAvailabilityId === availability.id
+                      ? untilTime
+                      : untilTimeData
+                  }
                   onTimeChange={setUntilTime}
                   disabled={isToggling}
                 />
                 <div className="flex justify-end flex-col">
                   <Button
-                    onClick={updateAvailability}
+                    onClick={() => updateAvailability(availability.id)}
                     disabled={isToggling}
                     className=""
                   >
-                    {isToggling ? "Updating..." : "Save Time Period"}
+                    {isToggling ? "Updating..." : "Save Availability"}
                   </Button>
                 </div>
               </div>
             );
           })}
         </div>
+        <div>
+          {isAddingAvailability && (
+            <div className="mt-4 space-x-4 flex md:flex-row flex-col gap-2 ">
+              <DateTimePicker
+                label="Available From"
+                date={fromDate}
+                onDateChange={setFromDate}
+                time={fromTime}
+                onTimeChange={setFromTime}
+                disabled={isToggling}
+              />
+              <DateTimePicker
+                label="Available Until"
+                date={untilDate}
+                onDateChange={setUntilDate}
+                time={untilTime}
+                onTimeChange={setUntilTime}
+                disabled={isToggling}
+              />
+              <div className="flex justify-end flex-col">
+                <Button
+                  onClick={handleCreateAvailability}
+                  disabled={isToggling}
+                  className=""
+                >
+                  {isToggling ? "Updating..." : "Save Availability"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="mt-10 w-full flex justify-center">
           <Button
             variant="secondary"
             className="w-full"
-            onClick={() =>
-              alert("camthehuman is busy developing... please come back later")
-            }
+            onClick={toggleAddingAvailability}
+            disabled={isAddingAvailability}
           >
-            Add Time Period
+            Add Availability
           </Button>
         </div>
 

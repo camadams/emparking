@@ -26,6 +26,7 @@ export async function claimBay(
     const availability = await db
       .select()
       .from(availabilityTable)
+      .innerJoin(bayTable, eq(availabilityTable.bayId, bayTable.id))
       .where(eq(availabilityTable.id, availabilityId))
       .limit(1);
 
@@ -34,8 +35,8 @@ export async function claimBay(
     }
 
     // Check if the availability is active
-    if (!availability[0].isAvailable) {
-      return { error: "This availability is not active" };
+    if (!availability[0].bay.isVisible) {
+      return { error: "This bay is not visible" };
     }
 
     // Check if there's already an active claim on this availability
@@ -160,55 +161,6 @@ export async function getMyActiveClaims() {
     return { activeClaims };
   } catch (error) {
     const errorMessage = "Error fetching active claims: " + error;
-    console.error(errorMessage);
-    return { error: errorMessage };
-  }
-}
-
-/**
- * Get future available bays (not yet available but will be in future)
- */
-export async function getFutureAvailableBays() {
-  try {
-    const headersList = await headers();
-    const session = await auth.api.getSession({ headers: headersList });
-
-    if (!session?.user?.id) {
-      return { error: "You must be logged in" };
-    }
-
-    // Get all bays with future availability info and check for active claims
-    const now = new Date();
-
-    const data = await db
-      .select({
-        bay: bayTable,
-        availability: availabilityTable,
-        ownerName:
-          sql<string>`(SELECT name FROM "user" WHERE id = ${bayTable.ownerId})`.as(
-            "ownerName"
-          ),
-      })
-      .from(bayTable)
-      .innerJoin(availabilityTable, eq(bayTable.id, availabilityTable.bayId))
-      .leftJoin(
-        claimTable,
-        and(
-          eq(availabilityTable.id, claimTable.availabilityId),
-          isNull(claimTable.releasedAt)
-        )
-      )
-      .where(
-        and(
-          eq(availabilityTable.isAvailable, true),
-          gt(availabilityTable.availableFrom, now), // Key difference: available in the future
-          isNull(claimTable.id) // Only include bays with no active claims
-        )
-      );
-
-    return { data };
-  } catch (error) {
-    const errorMessage = "Error fetching future available bays: " + error;
     console.error(errorMessage);
     return { error: errorMessage };
   }
