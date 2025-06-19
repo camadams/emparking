@@ -39,7 +39,7 @@ export function DateTimePicker({
   return (
     <div className="flex flex-col gap-2 w-full">
       {label && <Label className="text-sm font-medium">{label}</Label>}
-      <div className="flex gap-2 w-full">
+      <div className="flex md:flex-row gap-2 w-full">
         <Popover
           open={open && !disabled}
           onOpenChange={disabled ? undefined : setOpen}

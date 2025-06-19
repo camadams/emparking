@@ -449,43 +449,66 @@ function MyBaySection() {
           </div>
         </div>
 
-        {myBayData?.availability?.map((availability) => {
-          const fromTime = availability
-            .availableFrom!.toTimeString()
-            .substring(0, 5);
-          const untilTime = availability
-            .availableUntil!.toTimeString()
-            .substring(0, 5);
-          return (
-            <div key={availability.id} className="mt-4 space-x-4 flex">
-              <DateTimePicker
-                label="Available From"
-                date={availability.availableFrom!}
-                onDateChange={setFromDate}
-                time={fromTime}
-                onTimeChange={setFromTime}
-                disabled={isToggling}
-              />
-              <DateTimePicker
-                label="Available Until"
-                date={availability.availableUntil!}
-                onDateChange={setUntilDate}
-                time={untilTime}
-                onTimeChange={setUntilTime}
-                disabled={isToggling}
-              />
-              <div className="flex justify-end flex-col">
-                <Button
-                  onClick={updateAvailability}
+        {/* <div>
+          From time: {fromTime}
+          Until time: {untilTime}
+          From date: {fromDate?.toDateString()}
+          Until date: {untilDate?.toDateString()}
+        </div> */}
+
+        <div className="flex flex-col gap-6">
+          {myBayData?.availability?.map((availability) => {
+            const fromTime = availability
+              .availableFrom!.toTimeString()
+              .substring(0, 5);
+            const untilTime = availability
+              .availableUntil!.toTimeString()
+              .substring(0, 5);
+            return (
+              <div
+                key={availability.id}
+                className="mt-4 space-x-4 flex md:flex-row flex-col gap-2"
+              >
+                <DateTimePicker
+                  label="Available From"
+                  date={availability.availableFrom!}
+                  onDateChange={setFromDate}
+                  time={fromTime}
+                  onTimeChange={setFromTime}
                   disabled={isToggling}
-                  className=""
-                >
-                  {isToggling ? "Updating..." : "Save Time Period"}
-                </Button>
+                />
+                <DateTimePicker
+                  label="Available Until"
+                  date={availability.availableUntil!}
+                  onDateChange={setUntilDate}
+                  time={untilTime}
+                  onTimeChange={setUntilTime}
+                  disabled={isToggling}
+                />
+                <div className="flex justify-end flex-col">
+                  <Button
+                    onClick={updateAvailability}
+                    disabled={isToggling}
+                    className=""
+                  >
+                    {isToggling ? "Updating..." : "Save Time Period"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        <div className="mt-10 w-full flex justify-center">
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() =>
+              alert("camthehuman is busy developing... please come back later")
+            }
+          >
+            Add Time Period
+          </Button>
+        </div>
 
         {/* Display claim status: either claimed or not claimed */}
         {myBayData?.bay && (
