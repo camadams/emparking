@@ -7,6 +7,7 @@ import {
   claimBay,
   getFutureAvailableBays,
   getAvailableBays2,
+  getAvailablilties,
 } from "./actions";
 import { useAuthenticate } from "@daveyplate/better-auth-ui";
 import { Button } from "@/components/ui/button";
@@ -47,9 +48,9 @@ function AvailableBaysSection() {
   const [selectedBay, setSelectedBay] = useState<number | null>(null);
 
   // Fetch available bays
-  const { data: availableBays, isLoading } = useQuery({
+  const { data: availablilities, isLoading } = useQuery({
     queryKey: ["available-bays"],
-    queryFn: getAvailableBays2,
+    queryFn: getAvailablilties,
   });
 
   // Fetch user's active claims
@@ -166,7 +167,7 @@ function AvailableBaysSection() {
 
   // Show available bays
   const renderAvailableBays = () => {
-    if (!availableBays?.data || availableBays.data.length === 0) {
+    if (!availablilities?.data || availablilities.data.length === 0) {
       return (
         <p className="text-muted-foreground">
           No bays are currently available.
@@ -180,7 +181,7 @@ function AvailableBaysSection() {
     );
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {availableBays.data
+        {availablilities.data
           .filter(
             (item) =>
               item.bay?.isVisible &&
@@ -190,7 +191,7 @@ function AvailableBaysSection() {
               item.availability?.availableFrom < now
           )
           .map((item) => (
-            <Card key={item.bay.id} className="overflow-hidden">
+            <Card key={item.availability.id} className="overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
                 <CardDescription>Owner: {item.ownerName}</CardDescription>
@@ -234,7 +235,7 @@ function AvailableBaysSection() {
 
   // Show future available bays
   const renderFutureAvailableBays = () => {
-    if (!availableBays?.data || availableBays.data.length === 0) {
+    if (!availablilities?.data || availablilities.data.length === 0) {
       return (
         <p className="text-muted-foreground">
           No bays are scheduled for future availability.
@@ -249,7 +250,7 @@ function AvailableBaysSection() {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {availableBays.data
+        {availablilities.data
           .filter(
             (item) =>
               item.bay?.isVisible &&
@@ -367,7 +368,7 @@ function AvailableBaysSection() {
 
   // Render map view of bays
   const renderMapView = () => {
-    if (!availableBays?.data || availableBays.data.length === 0) {
+    if (!availablilities?.data || availablilities.data.length === 0) {
       return (
         <div className="text-center p-8">
           No bays available to display on map
@@ -381,7 +382,7 @@ function AvailableBaysSection() {
     );
 
     // Filter current and future availability bays
-    const currentBays = availableBays.data.filter(
+    const currentBays = availablilities.data.filter(
       (item) =>
         item.bay?.isVisible &&
         item.availability?.availableUntil &&
@@ -390,7 +391,7 @@ function AvailableBaysSection() {
         item.availability?.availableFrom < now
     );
 
-    const futureBays = availableBays.data.filter(
+    const futureBays = availablilities.data.filter(
       (item) =>
         item.bay?.isVisible &&
         item.availability?.availableFrom &&

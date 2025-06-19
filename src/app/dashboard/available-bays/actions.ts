@@ -240,3 +240,25 @@ export async function getAvailableBays2() {
     return { error: errorMessage };
   }
 }
+
+export async function getAvailablilties() {
+  const headersList = await headers();
+  const session = await auth.api.getSession({ headers: headersList });
+
+  if (!session?.user?.id) {
+    return { error: "You must be logged in" };
+  }
+
+  const data = await db
+    .select({
+      availability: availabilityTable,
+      bay: bayTable,
+      ownerName: user.name,
+    })
+    .from(availabilityTable)
+    .innerJoin(bayTable, eq(availabilityTable.bayId, bayTable.id))
+    .innerJoin(user, eq(bayTable.ownerId, user.id))
+    .where(eq(bayTable.isVisible, true));
+
+  return { data };
+}
