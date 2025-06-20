@@ -513,12 +513,16 @@ function MyBaySection() {
 
         <div className="flex flex-col gap-6">
           {myBayData?.availability?.map((availability) => {
-            const fromTimeData = availability
-              .availableFrom!.toTimeString()
-              .substring(0, 5);
-            const untilTimeData = availability
-              .availableUntil!.toTimeString()
-              .substring(0, 5);
+            const availableFromData = availability.availableFrom;
+            console.log({ availableFromData });
+            const fromTimeData = availableFromData
+              ? availableFromData.toTimeString().substring(0, 5)
+              : "00:00";
+
+            const availableUntilData = availability.availableUntil;
+            const untilTimeData = availableUntilData
+              ? availableUntilData.toTimeString().substring(0, 5)
+              : "23:59";
             return (
               <div
                 key={availability.id}
