@@ -14,7 +14,11 @@ import { format, intervalToDuration } from "date-fns";
 interface AvailableBaysListProps {
   availableBays: any;
   claimsData: any;
-  onClaimBay: (bayId: number, availableUntil: Date | null, isFutureAvailability?: boolean) => Promise<void>;
+  onClaimBay: (
+    bayId: number,
+    availableUntil: Date | null,
+    isFutureAvailability?: boolean
+  ) => Promise<void>;
   now: Date;
 }
 
@@ -33,6 +37,8 @@ export default function AvailableBaysList({
         </p>
       );
     }
+
+    // console.log(availableBays?.data);
 
     // Create a map of claimed bay IDs for quick lookup
     const claimedBayIds = new Set(
@@ -164,7 +170,7 @@ export default function AvailableBaysList({
         <h3 className="text-xl font-medium mb-4">Available Now</h3>
         {renderAvailableBays()}
       </div>
-      
+
       <div>
         <h3 className="text-xl font-medium mb-2">Future Availability</h3>
         <p className="text-sm text-muted-foreground mb-4">

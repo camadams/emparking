@@ -210,7 +210,19 @@ export async function getAvailablilties() {
     .from(availabilityTable)
     .innerJoin(bayTable, eq(availabilityTable.bayId, bayTable.id))
     .innerJoin(user, eq(bayTable.ownerId, user.id))
-    .where(eq(bayTable.isVisible, true));
+    .leftJoin(
+      claimTable,
+      and(
+        eq(claimTable.availabilityId, availabilityTable.id),
+        isNull(claimTable.releasedAt)
+      )
+    )
+    .where(
+      and(
+        eq(bayTable.isVisible, true),
+        isNull(claimTable.id)
+      )
+    );
 
   return { data };
 }

@@ -422,6 +422,12 @@ function MyBaySection() {
   //   };
   // };
   // Show bay management UI once bay is registered
+
+  const atLeastOneAvailabilityClaimable = myBayData?.availability?.some(
+    (availability) =>
+      availability.availableUntil && availability.availableUntil > new Date()
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -492,10 +498,18 @@ function MyBaySection() {
               <p className="font-medium">Visibility Status</p>
               <p
                 className={`font-bold ${
-                  myBayData?.bay?.isVisible ? "text-green-500" : "text-red-500"
+                  myBayData?.bay?.isVisible
+                    ? atLeastOneAvailabilityClaimable
+                      ? "text-green-500"
+                      : "text-yellow-500"
+                    : "text-red-500"
                 }`}
               >
-                {myBayData?.bay?.isVisible ? "Visible" : "Hidden"}
+                {myBayData?.bay?.isVisible
+                  ? atLeastOneAvailabilityClaimable
+                    ? "Visible"
+                    : "Hidden (no claimable availabilities, please add some)"
+                  : "Hidden"}
               </p>
             </div>
             <div className="flex items-center space-x-2">
