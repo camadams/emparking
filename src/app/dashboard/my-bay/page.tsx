@@ -7,6 +7,7 @@ import {
   updateAvailabilityAction,
   toggleBayVisibility,
   updateBayLabel,
+  updateBayNote,
   createAvailabilityAction,
 } from "./actions";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,6 +43,7 @@ import { format } from "date-fns";
 // Form schema for bay registration/updating
 const bayFormSchema = z.object({
   label: z.string().min(1, { message: "Bay label is required" }),
+  note: z.string().optional(),
 });
 
 // Registration form schema with ownership confirmation
@@ -74,6 +76,7 @@ function MyBaySection() {
   });
   // State for toggling edit mode and visibility settings
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingNote, setIsEditingNote] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   // const [isAvailable, setIsAvailable] = useState(false);
 
@@ -121,6 +124,7 @@ function MyBaySection() {
     resolver: zodResolver(bayFormSchema),
     defaultValues: {
       label: myBayData?.bay?.label || "",
+      note: myBayData?.bay?.note || "",
     },
   });
 
@@ -171,6 +175,25 @@ function MyBaySection() {
     if (result.message) {
       toast.success(result.message);
       setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["my-bay"] });
+    }
+  }
+
+  // Handle bay note update
+  async function onUpdateNote(values: BayFormValues) {
+    if (!myBayData?.bay?.id) return;
+
+    const note = values.note || "";
+    const result = await updateBayNote(myBayData.bay.id, note);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    if (result.message) {
+      toast.success(result.message);
+      setIsEditingNote(false);
       queryClient.invalidateQueries({ queryKey: ["my-bay"] });
     }
   }
@@ -264,6 +287,14 @@ function MyBaySection() {
     if (myBayData?.bay) {
       updateForm.setValue("label", myBayData.bay.label);
       setIsEditing(true);
+    }
+  }
+
+  // Start edit mode for note with current bay note
+  function startEditingNote() {
+    if (myBayData?.bay) {
+      updateForm.setValue("note", myBayData.bay.note || "");
+      setIsEditingNote(true);
     }
   }
 
@@ -414,6 +445,7 @@ function MyBaySection() {
       queryClient.invalidateQueries({ queryKey: ["my-bay"] });
     }
   };
+
   // const onAvailabilityChanged = (
   //   setFromDate: (date: Date) => void
   // ): ((date: Date) => void) => {
@@ -491,6 +523,66 @@ function MyBaySection() {
             </Button>
           </div>
         )}
+
+        {/* Bay Note Section */}
+        <div className="pt-4 border-t border-dashed mb-4">
+          <h3 className="text-sm font-medium mb-2">Bay Note:</h3>
+          {isEditingNote ? (
+            <Form {...updateForm}>
+              <form
+                onSubmit={updateForm.handleSubmit(onUpdateNote)}
+                className="space-y-4"
+              >
+                <FormField
+                  control={updateForm.control}
+                  name="note"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          placeholder="Add a note about your bay"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Add any details or information about your bay.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={updateForm.formState.isSubmitting}
+                  >
+                    {updateForm.formState.isSubmitting
+                      ? "Saving..."
+                      : "Save Note"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditingNote(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          ) : (
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-gray-600">
+                  {myBayData?.bay?.note ? myBayData.bay.note : "No note added"}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={startEditingNote}>
+                {myBayData?.bay?.note ? "Edit Note" : "Add Note"}
+              </Button>
+            </div>
+          )}
+        </div>
 
         <div className="pt-4 border-t">
           <div className="flex justify-between items-center">

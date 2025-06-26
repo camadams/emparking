@@ -58,6 +58,15 @@ export function Providers({ children }: { children: ReactNode }) {
         avatar={true}
         providers={["google"]}
         redirectTo="/dashboard/my-bay"
+        // additionalFields={{
+        //   cellNumber: {
+        //     label: "Cell Number",
+        //     placeholder: "Your cell number",
+        //     description: "Please enter your cell number",
+        //     required: true,
+        //     type: "string",
+        //   },
+        // }}
       >
         {children}
       </AuthUIProvider>

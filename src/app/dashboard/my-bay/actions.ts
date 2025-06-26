@@ -308,3 +308,45 @@ export async function createAvailabilityAction(
     return { error: errorMessage };
   }
 }
+
+/**
+ * Update a bay's note
+ */
+export async function updateBayNote(bayId: number, note: string) {
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (!session?.user?.id) {
+      return { error: "You must be logged in" };
+    }
+
+    // Verify ownership
+    const bay = await db
+      .select()
+      .from(bayTable)
+      .where(and(eq(bayTable.id, bayId), eq(bayTable.ownerId, session.user.id)))
+      .limit(1);
+
+    if (!bay || bay.length === 0) {
+      return {
+        error: "Bay not found or you don't have permission to update it",
+      };
+    }
+
+    // Update the bay note
+    await db
+      .update(bayTable)
+      .set({
+        note: note.trim(),
+        updatedAt: new Date(),
+      })
+      .where(eq(bayTable.id, bayId));
+
+    return { message: "Note updated successfully" };
+  } catch (error) {
+    const errorMessage = "Error updating bay note: " + error;
+    console.error(errorMessage);
+    return { error: errorMessage };
+  }
+}

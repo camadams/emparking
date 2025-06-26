@@ -85,6 +85,7 @@ export type NewDummy = typeof dummyTable.$inferInsert;
 export const bayTable = pgTable("bay", {
   id: serial("id").primaryKey(),
   label: text("label").notNull(), // e.g., "A23"
+  note: text("note"), // Optional note for the bay
   isVisible: boolean("is_visible").notNull().default(true),
   ownerId: text("owner_id")
     .notNull()

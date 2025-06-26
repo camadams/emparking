@@ -133,7 +133,12 @@ function AvailableBaysSection() {
               className="overflow-hidden border-destructive"
             >
               <CardHeader>
-                <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
+                <CardTitle className="text-lg">
+                  Bay {item.bay.label}{" "}
+                  <span className="text-sm text-muted-foreground">
+                    ({item.bay.note})
+                  </span>
+                </CardTitle>
                 <CardDescription>Owner: {item.ownerName}</CardDescription>
               </CardHeader>
               <CardContent className="bg-muted">
@@ -191,7 +196,12 @@ function AvailableBaysSection() {
           .map((item) => (
             <Card key={item.availability.id} className="overflow-hidden">
               <CardHeader>
-                <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
+                <CardTitle className="text-lg">
+                  Bay {item.bay.label}{" "}
+                  <span className="text-sm text-muted-foreground">
+                    ({item.bay.note})
+                  </span>
+                </CardTitle>
                 <CardDescription>Owner: {item.ownerName}</CardDescription>
               </CardHeader>
               <CardContent className="bg-muted">
@@ -261,7 +271,12 @@ function AvailableBaysSection() {
               className="overflow-hidden border-blue-300"
             >
               <CardHeader className="bg-blue-50">
-                <CardTitle className="text-lg">Bay {item.bay.label}</CardTitle>
+                <CardTitle className="text-lg">
+                  Bay {item.bay.label}{" "}
+                  <span className="text-sm text-muted-foreground">
+                    ({item.bay.note})
+                  </span>
+                </CardTitle>
                 <CardDescription>Owner: {item.ownerName}</CardDescription>
               </CardHeader>
               <CardContent className="bg-muted">
